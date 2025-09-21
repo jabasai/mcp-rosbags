@@ -64,11 +64,31 @@ def _check_condition(msg_data: Dict[str, Any], condition_type: str, value: Any, 
     elif condition_type == "near_position":
         # For pose messages - check if near a position
         position = _extract_position(msg_data)
-        if position and isinstance(value, dict) and "x" in value and "y" in value:
-            dx = position["x"] - value["x"]
-            dy = position["y"] - value["y"]
+        if position:
+            # Parse value if it's a string in format "(x,y,tolerance)" or "(x,y)"
+            if isinstance(value, str):
+                try:
+                    # Remove parentheses and split by comma
+                    coords = value.strip("()").split(",")
+                    if len(coords) >= 2:
+                        target_pos = {
+                            "x": float(coords[0]),
+                            "y": float(coords[1]),
+                            "tolerance": float(coords[2]) if len(coords) > 2 else config['data']['position_tolerance']
+                        }
+                    else:
+                        return False
+                except (ValueError, IndexError):
+                    return False
+            elif isinstance(value, dict) and "x" in value and "y" in value:
+                target_pos = value
+            else:
+                return False
+                
+            dx = position["x"] - target_pos["x"]
+            dy = position["y"] - target_pos["y"]
             distance = (dx**2 + dy**2) ** 0.5
-            tolerance = value.get("tolerance", config['data']['position_tolerance'])
+            tolerance = target_pos.get("tolerance", config['data']['position_tolerance'])
             return distance <= tolerance
     
     elif condition_type == "field_equals":
