@@ -12,8 +12,8 @@ services:
       - ./rosbags:/rosbags:ro
       # Optionally override configuration
       - ./src/config:/app/src/config:ro
-      # Mount a directory for logs (specific subdirectory to avoid conflicts)
-      - ./logs:/var/log/mcp-rosbags:rw
+      # Mount /tmp for logs (logs will be at ./logs/mcp_rosbag_*.log on host)
+      - ./logs:/tmp:rw
     
     # Environment variables
     environment:

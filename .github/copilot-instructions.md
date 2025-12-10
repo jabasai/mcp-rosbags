@@ -98,7 +98,8 @@ This is a Model Context Protocol (MCP) server that enables AI assistants like Cl
 
 ## Important Notes
 
-- The server logs to `/tmp/mcp_rosbag_TIMESTAMP.log`
+- The server logs to `/tmp/mcp_rosbag_TIMESTAMP.log` by default
+  - In Docker containers using compose.yaml, logs are accessible on the host in `./logs/`
 - Cache is cleared when bag path changes
 - Timestamp handling: ROS uses nanoseconds, convert to/from seconds for API
 - Tool names must be unique across all extractors
