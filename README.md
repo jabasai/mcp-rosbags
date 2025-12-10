@@ -89,7 +89,7 @@ The Docker container:
 - Uses **ROS 2 Humble** as the base image for full ROS 2 support
 - Mounts your ROS bag directory to `/rosbags` (read-only)
 - Mounts configuration files to `/app/src/config` (read-only)
-- Writes logs to `/tmp` (can be mounted to persist logs)
+- Writes logs to `/tmp` (mount to `/var/log/mcp-rosbags` via Docker Compose to persist logs)
 - Communicates via stdin/stdout (MCP protocol)
 
 ## Configuration

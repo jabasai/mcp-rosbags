@@ -63,18 +63,19 @@ jobs:
       
       - name: Test Docker image
         run: |
-          # Create a test directory for rosbags
-          mkdir -p test-rosbags
+          # Test that the Docker image was built correctly
+          # Check that required files exist in the image
+          docker run --rm --entrypoint ls mcp-rosbags:test -la /app/src/server.py
+          docker run --rm --entrypoint ls mcp-rosbags:test -la /app/src/config/
+          docker run --rm --entrypoint python3 mcp-rosbags:test -c "import sys; print(f'Python {sys.version}')"
           
-          # Test that the container can start and show version/help info
-          # The server expects MCP protocol input, so we test basic startup
-          timeout 5s docker run --rm \
-            -v $(pwd)/test-rosbags:/rosbags:ro \
-            -v $(pwd)/src/config:/app/src/config:ro \
-            mcp-rosbags:test --help 2>&1 | grep -i "usage\|error" || \
-            echo "Container starts successfully (MCP server expects stdio input)"
+          # Verify ROS 2 environment is available
+          docker run --rm --entrypoint bash mcp-rosbags:test -c "source /opt/ros/humble/setup.bash && ros2 --version"
           
-          echo "Container test completed"
+          # Verify Python packages are installed
+          docker run --rm --entrypoint pip3 mcp-rosbags:test list | grep -E "mcp|rosbags|numpy"
+          
+          echo "✓ Container image validation completed successfully"
       
       - name: Build and push Docker image
         if: github.event_name != 'pull_request'
