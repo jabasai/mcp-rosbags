@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  mcp-rosbags:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: mcp-rosbags:latest
+    container_name: mcp-rosbags-server
+    
+    # Mount directories for rosbags and configuration
+    volumes:
+      # Mount your local rosbag directory to /rosbags in the container
+      - ./rosbags:/rosbags:ro
+      # Optionally override configuration
+      - ./src/config:/app/src/config:ro
+      # Mount a directory for logs
+      - ./logs:/tmp:rw
+    
+    # Environment variables
+    environment:
+      - MCP_ROSBAG_DIR=/rosbags
+      - MCP_ROSBAG_CONFIG=/app/src/config
+    
+    # stdin_open and tty are needed for MCP stdio communication
+    stdin_open: true
+    tty: true
+    
+    # Restart policy
+    restart: unless-stopped
+    
+    # Resource limits (optional, adjust as needed)
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
