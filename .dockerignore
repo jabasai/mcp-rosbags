@@ -1,0 +1,40 @@
+# Exclude git files
+.git
+.gitignore
+
+# Exclude documentation
+*.md
+LICENSE
+
+# Exclude test and log files
+logs/
+test-rosbags/
+*.log
+
+# Exclude Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+
+# Exclude rosbags (should be mounted)
+rosbags/
+
+# Exclude virtual environments
+venv/
+env/
+ENV/
+
+# Exclude IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Exclude CI/CD files (not needed in container)
+.github/

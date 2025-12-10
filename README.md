@@ -41,6 +41,57 @@ This MCP server provides comprehensive tools for ROS bag analysis, supporting bo
     pip install -e .[ros2]
     ```
 
+## Docker Deployment
+
+### Building the Docker Image
+
+Build the Docker image using the provided Dockerfile:
+
+```bash
+docker build -t mcp-rosbags:latest .
+```
+
+### Running with Docker Compose
+
+The easiest way to run the MCP server in a container is using Docker Compose:
+
+1. **Place your ROS bag files** in the `./rosbags` directory (or modify the volume mount in `compose.yaml`)
+
+2. **Start the container:**
+    ```bash
+    docker compose up -d
+    ```
+
+3. **View logs:**
+    ```bash
+    docker compose logs -f
+    ```
+
+4. **Stop the container:**
+    ```bash
+    docker compose down
+    ```
+
+### Running with Docker
+
+You can also run the container directly:
+
+```bash
+docker run -it --rm \
+  -v /path/to/your/rosbags:/rosbags:ro \
+  -v $(pwd)/src/config:/app/src/config:ro \
+  mcp-rosbags:latest
+```
+
+### Docker Configuration
+
+The Docker container:
+- Uses **ROS 2 Humble** as the base image for full ROS 2 support
+- Mounts your ROS bag directory to `/rosbags` (read-only)
+- Mounts configuration files to `/app/src/config` (read-only)
+- Writes logs to `/tmp` (can be mounted to persist logs)
+- Communicates via stdin/stdout (MCP protocol)
+
 ## Configuration
 
 ### Claude Desktop Configuration
