@@ -15,9 +15,15 @@ RUN apt-get update && apt-get install -y \
 # Copy requirements first for better caching
 COPY requirements.txt .
 
-# Install Python dependencies (with trusted host for SSL issues in some environments)
+# Install Python dependencies
+# Note: In environments with SSL interception (corporate proxies, some CI systems),
+# the standard pip install may fail due to self-signed certificates in the chain.
+# We first try the standard secure method, then fall back to specifying PyPI as trusted
+# only if necessary. In production, configure proper CA certificates instead.
 RUN pip3 install --no-cache-dir -r requirements.txt || \
-    pip3 install --trusted-host pypi.org --trusted-host files.pythonhosted.org -r requirements.txt
+    (echo "Standard pip install failed, likely due to SSL certificate issues in this environment." && \
+     echo "Attempting install with explicit PyPI trust (not recommended for production)." && \
+     pip3 install --trusted-host pypi.org --trusted-host files.pythonhosted.org --no-cache-dir -r requirements.txt)
 
 # Copy the application code
 COPY src/ ./src/

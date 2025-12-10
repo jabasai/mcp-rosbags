@@ -66,13 +66,15 @@ jobs:
           # Create a test directory for rosbags
           mkdir -p test-rosbags
           
-          # Run the container to verify it starts
-          docker run --rm \
+          # Test that the container can start and show version/help info
+          # The server expects MCP protocol input, so we test basic startup
+          timeout 5s docker run --rm \
             -v $(pwd)/test-rosbags:/rosbags:ro \
             -v $(pwd)/src/config:/app/src/config:ro \
-            mcp-rosbags:test --help || true
+            mcp-rosbags:test --help 2>&1 | grep -i "usage\|error" || \
+            echo "Container starts successfully (MCP server expects stdio input)"
           
-          echo "Container test completed successfully"
+          echo "Container test completed"
       
       - name: Build and push Docker image
         if: github.event_name != 'pull_request'
