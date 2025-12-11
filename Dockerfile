@@ -13,7 +13,7 @@ COPY pyproject.toml README.md .python-version* /app/
 
 
 # Copy the application code
-COPY src/ ./src/
+COPY mcp_rosbag_server/ ./mcp_rosbag_server/
 
 # Install dependencies and the package
 # Note: In environments with SSL interception (corporate proxies, some CI systems),
@@ -32,8 +32,5 @@ RUN mkdir -p /rosbags
 # Expose the MCP server (stdio-based, no port needed but useful for documentation)
 # The server communicates via stdin/stdout
 
-# Set the entrypoint to run the MCP server
-ENTRYPOINT ["python3", "/app/src/server.py"]
+CMD ["/usr/local/bin/mcp-rosbag-server"]
 
-# Default command arguments (can be overridden)
-CMD []
