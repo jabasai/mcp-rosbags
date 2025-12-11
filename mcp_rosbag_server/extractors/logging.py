@@ -3,7 +3,7 @@
 Unified ROS log analysis tool for /rosout messages.
 """
 
-from typing import Dict, Any, List, Optional, Callable
+from typing import Dict, Any, List, Optional
 import logging
 from pathlib import Path
 from collections import defaultdict
@@ -11,6 +11,9 @@ from collections import defaultdict
 from rosbags.rosbag2 import Reader
 
 logger = logging.getLogger(__name__)
+
+# Import mcp instance and helper functions from shared module
+from ..shared import mcp, get_bag_files, deserialize_message, config
 
 # ROS log levels
 LOG_LEVELS = {
@@ -24,6 +27,7 @@ LOG_LEVELS = {
 LEVEL_NAMES = {v: k for k, v in LOG_LEVELS.items()}
 
 
+@mcp.tool()
 async def analyze_logs(
     level_filter: Optional[str] = None,
     node_filter: Optional[str] = None,
@@ -32,9 +36,6 @@ async def analyze_logs(
     end_time: Optional[float] = None,
     max_logs: int = 100,
     bag_path: Optional[str] = None,
-    _get_bag_files_fn: Callable = None,
-    _deserialize_message_fn: Callable = None,
-    config: Dict[str, Any] = None
 ) -> Dict[str, Any]:
     """
     Unified log analysis tool.
@@ -50,10 +51,10 @@ async def analyze_logs(
     """
     logger.info(f"Analyzing logs: level={level_filter}, node={node_filter}, summary={return_summary}")
     
-    if not _get_bag_files_fn:
+    if not get_bag_files:
         return {"error": "Bag files function not provided"}
     
-    bags = _get_bag_files_fn(bag_path)
+    bags = get_bag_files(bag_path)
     if not bags:
         return {"error": "No bag files found"}
     
@@ -99,7 +100,7 @@ async def analyze_logs(
                     if last_timestamp is None or time_sec > last_timestamp:
                         last_timestamp = time_sec
                     
-                    _, msg_dict = _deserialize_message_fn(rawdata, conn.msgtype)
+                    _, msg_dict = deserialize_message(rawdata, conn.msgtype)
                     
                     msg_level = msg_dict.get("level", 0)
                     msg_node = msg_dict.get("name", "unknown")
@@ -209,49 +210,3 @@ async def analyze_logs(
             "truncated": len(logs) >= max_logs
         }
 
-
-def register_logging_tools(server, get_bag_files_fn, deserialize_message_fn, config):
-    """Register logging analysis tools with the MCP server."""
-    from mcp.types import Tool
-    
-    tools = [
-        Tool(
-            name="analyze_logs",
-            description="Analyze ROS log messages from /rosout. Can filter by level/node or return summary statistics.",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "level_filter": {"type": "string", 
-                                   "enum": ["DEBUG", "INFO", "WARN", "ERROR", "FATAL"],
-                                   "description": "Optional: filter by log level"},
-                    "node_filter": {"type": "string", 
-                                  "description": "Optional: filter by node name (partial match)"},
-                    "return_summary": {"type": "boolean", 
-                                     "description": "Return statistics instead of individual logs (default: false)"},
-                    "start_time": {"type": "number", "description": "Optional: start unix timestamp"},
-                    "end_time": {"type": "number", "description": "Optional: end unix timestamp"},
-                    "max_logs": {"type": "integer", "description": "Maximum logs to return (default: 100)"},
-                    "bag_path": {"type": "string", "description": "Optional: specific bag file or directory"}
-                }
-            }
-        )
-    ]
-    
-    # Create handler
-    async def handle_analyze_logs(args):
-        return await analyze_logs(
-            args.get("level_filter"),
-            args.get("node_filter"),
-            args.get("return_summary", False),
-            args.get("start_time"),
-            args.get("end_time"),
-            args.get("max_logs", config.get('logging', {}).get('default_limit', 100)),
-            args.get("bag_path"),
-            get_bag_files_fn,
-            deserialize_message_fn,
-            config
-        )
-    
-    return tools, {
-        "analyze_logs": handle_analyze_logs
-    }

@@ -4,7 +4,7 @@ LiDAR data analysis and visualization tools.
 """
 
 import numpy as np
-from typing import Dict, Any, List, Optional, Callable
+from typing import Dict, Any, List, Optional
 import logging
 from pathlib import Path
 from datetime import datetime
@@ -12,6 +12,9 @@ from datetime import datetime
 from rosbags.rosbag2 import Reader
 
 logger = logging.getLogger(__name__)
+
+# Import mcp instance and helper functions from shared module
+from ..shared import mcp, get_bag_files, deserialize_message, config
 
 
 def analyze_scan(ranges: List[float], angle_min: float, angle_max: float, 
@@ -126,6 +129,7 @@ def analyze_scan(ranges: List[float], angle_min: float, angle_max: float,
     return stats
 
 
+@mcp.tool()
 async def analyze_lidar_scan(
     topic: str,
     timestamp: Optional[float] = None,
@@ -133,10 +137,9 @@ async def analyze_lidar_scan(
     end_time: Optional[float] = None,
     aggregate: bool = False,
     bag_path: Optional[str] = None,
-    _get_bag_files_fn: Callable = None,
-    _deserialize_message_fn: Callable = None,
-    config: Dict[str, Any] = None
-) -> Dict[str, Any]:
+    config: Dict[str,
+    Any] = None
+)-> Dict[str, Any]:
     """
     Analyze LiDAR scan data for obstacles and gaps.
     
@@ -150,10 +153,10 @@ async def analyze_lidar_scan(
     """
     logger.info(f"Analyzing LiDAR scan from {topic}")
     
-    if not _get_bag_files_fn:
+    if not get_bag_files:
         return {"error": "Bag files function not provided"}
     
-    bags = _get_bag_files_fn(bag_path)
+    bags = get_bag_files(bag_path)
     if not bags:
         return {"error": "No bag files found"}
     
@@ -180,7 +183,7 @@ async def analyze_lidar_scan(
                         if diff < min_diff and diff <= tolerance_ns:
                             min_diff = diff
                             closest_time = msg_timestamp
-                            _, msg_dict = _deserialize_message_fn(rawdata, conn.msgtype)
+                            _, msg_dict = deserialize_message(rawdata, conn.msgtype)
                             closest_scan = msg_dict
                             
             except Exception as e:
@@ -242,7 +245,7 @@ async def analyze_lidar_scan(
                         if not (start_ns <= msg_timestamp <= end_ns):
                             continue
                         
-                        _, msg_dict = _deserialize_message_fn(rawdata, conn.msgtype)
+                        _, msg_dict = deserialize_message(rawdata, conn.msgtype)
                         
                         analysis = analyze_scan(
                             msg_dict.get("ranges", []),
@@ -305,16 +308,16 @@ async def analyze_lidar_scan(
         return result
 
 
+@mcp.tool()
 async def plot_lidar_scan(
     topic: str,
     timestamp: float,
     title: str = "LiDAR Scan",
     show_sectors: bool = True,
     bag_path: Optional[str] = None,
-    _get_bag_files_fn: Callable = None,
-    _deserialize_message_fn: Callable = None,
-    config: Dict[str, Any] = None
-) -> Dict[str, Any]:
+    config: Dict[str,
+    Any] = None
+)-> Dict[str, Any]:
     """
     Create a polar plot of a LiDAR scan.
     
@@ -327,10 +330,10 @@ async def plot_lidar_scan(
     """
     logger.info(f"Creating LiDAR plot for {topic} at {timestamp}")
     
-    if not _get_bag_files_fn:
+    if not get_bag_files:
         return {"error": "Bag files function not provided"}
     
-    bags = _get_bag_files_fn(bag_path)
+    bags = get_bag_files(bag_path)
     if not bags:
         return {"error": "No bag files found"}
     
@@ -353,7 +356,7 @@ async def plot_lidar_scan(
                     
                     diff = abs(msg_timestamp - target_ns)
                     if diff <= tolerance_ns:
-                        _, msg_dict = _deserialize_message_fn(rawdata, conn.msgtype)
+                        _, msg_dict = deserialize_message(rawdata, conn.msgtype)
                         scan_data = msg_dict
                         actual_time = msg_timestamp / 1e9
                         break
@@ -486,8 +489,7 @@ async def plot_lidar_scan(
 
 def register_lidar_tools(server, get_bag_files_fn, deserialize_message_fn, config):
     """Register LiDAR analysis tools with the MCP server."""
-    from mcp.types import Tool
-    
+        
     tools = [
         Tool(
             name="analyze_lidar_scan",

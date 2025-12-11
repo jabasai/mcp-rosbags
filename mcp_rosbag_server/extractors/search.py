@@ -4,12 +4,15 @@ Unified search tool for finding messages based on conditions.
 """
 import json
 import re
-from typing import Dict, Any, List, Optional, Callable
+from typing import Dict, Any, List, Optional
 import logging
 from pathlib import Path
 from rosbags.rosbag2 import Reader
 
 logger = logging.getLogger(__name__)
+
+# Import mcp instance and helper functions from shared module
+from ..shared import mcp, get_bag_files, deserialize_message, config
 
 def _check_condition(msg_data: Dict[str, Any], condition_type: str, value: Any, config: Dict[str, Any], field_path: str = None) -> bool:
     """Check if a message matches a condition."""
@@ -193,6 +196,7 @@ def _extract_field_value(msg_data: Dict[str, Any], field_path: str) -> Any:
     except Exception:
         return None
 
+@mcp.tool()
 async def search_messages(
     topic: str,
     condition_type: str,
@@ -205,9 +209,6 @@ async def search_messages(
     correlation_tolerance: float = 0.5,
     bag_path: Optional[str] = None,
     field: Optional[str] = None,  # NEW: field path parameter
-    _get_bag_files_fn: Callable = None,
-    _deserialize_message_fn: Callable = None,
-    config: Dict[str, Any] = None
 ) -> Dict[str, Any]:
     """
     Unified search for messages matching conditions.
@@ -227,10 +228,10 @@ async def search_messages(
     """
     logger.info(f"Searching {topic} for {condition_type}={value}, field={field}, direction={direction}, limit={limit}")
     
-    if not _get_bag_files_fn:
+    if not get_bag_files:
         return {"error": "Bag files function not provided"}
     
-    bags = _get_bag_files_fn(bag_path)
+    bags = get_bag_files(bag_path)
     if not bags:
         return {"error": "No bag files found"}
     
@@ -262,10 +263,10 @@ async def search_messages(
                         continue
                     
                     if conn.topic == topic:
-                        _, msg_dict = _deserialize_message_fn(rawdata, conn.msgtype)
+                        _, msg_dict = deserialize_message(rawdata, conn.msgtype)
                         messages.append((time_sec, msg_dict, str(bag_path.name)))
                     elif correlate_with_topic and conn.topic == correlate_with_topic:
-                        _, msg_dict = _deserialize_message_fn(rawdata, conn.msgtype)
+                        _, msg_dict = deserialize_message(rawdata, conn.msgtype)
                         correlation_messages[time_sec] = msg_dict
                 
                 # Process messages in appropriate order
@@ -333,53 +334,3 @@ async def search_messages(
     
     return result
 
-def register_search_tools(server, get_bag_files_fn, deserialize_message_fn, config):
-    """Register search tools with the MCP server."""
-    from mcp.types import Tool
-    
-    tools = [
-        Tool(
-            name="search_messages",
-            description="Search for messages matching conditions. Supports: contains, equals, greater_than, less_than, regex, near_position, field_equals, field_exists",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "topic": {"type": "string", "description": "ROS topic to search"},
-                    "condition_type": {"type": "string", "description": "Type of condition to match"},
-                    "value": {"type": "string", "description": "Value to match (format depends on condition_type)"},
-                    "field": {"type": "string", "description": "Optional: field path for numeric comparisons (e.g., 'linear.x', 'pose.position.x')"},
-                    "direction": {"type": "string", "description": "Search direction (default: forward)"},
-                    "limit": {"type": "integer", "description": "Maximum matches to return (default: 100)"},
-                    "start_time": {"type": "number", "description": "Optional: start unix timestamp"},
-                    "end_time": {"type": "number", "description": "Optional: end unix timestamp"},
-                    "correlate_with_topic": {"type": "string", "description": "Optional: get correlated values from another topic"},
-                    "correlation_tolerance": {"type": "number", "description": "Time tolerance for correlation in seconds (default: 0.5)"},
-                    "bag_path": {"type": "string", "description": "Optional: specific bag file or directory"}
-                },
-                "required": ["topic", "condition_type", "value"]
-            }
-        )
-    ]
-    
-    # Create handler
-    async def handle_search_messages(args):
-        return await search_messages(
-            args["topic"],
-            args["condition_type"],
-            args["value"],
-            args.get("direction", "forward"),
-            args.get("limit", 100),
-            args.get("start_time"),
-            args.get("end_time"),
-            args.get("correlate_with_topic"),
-            args.get("correlation_tolerance", 0.5),
-            args.get("bag_path"),
-            args.get("field"),  # NEW: pass field parameter
-            get_bag_files_fn,
-            deserialize_message_fn,
-            config
-        )
-    
-    return tools, {
-        "search_messages": handle_search_messages
-    }

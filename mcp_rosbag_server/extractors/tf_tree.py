@@ -3,7 +3,7 @@
 TF tree extraction tool for understanding coordinate frame relationships.
 """
 
-from typing import Dict, Any, List, Optional, Callable, Set
+from typing import Dict, Any, List, Optional, Set
 import logging
 from pathlib import Path
 from collections import defaultdict
@@ -11,6 +11,9 @@ from collections import defaultdict
 from rosbags.rosbag2 import Reader
 
 logger = logging.getLogger(__name__)
+
+# Import mcp instance and helper functions from shared module
+from ..shared import mcp, get_bag_files, deserialize_message, config
 
 
 def build_tf_tree(transforms: Dict[tuple, Dict]) -> Dict[str, Any]:
@@ -86,15 +89,15 @@ def build_tf_tree(transforms: Dict[tuple, Dict]) -> Dict[str, Any]:
     }
 
 
+@mcp.tool()
 async def get_tf_tree(
     timestamp: float,
     tf_topic: str = "/tf",
     static_tf_topic: str = "/tf_static",
     bag_path: Optional[str] = None,
-    _get_bag_files_fn: Callable = None,
-    _deserialize_message_fn: Callable = None,
-    config: Dict[str, Any] = None
-) -> Dict[str, Any]:
+    config: Dict[str,
+    Any] = None
+)-> Dict[str, Any]:
     """
     Get the TF tree structure at a specific timestamp.
     
@@ -109,10 +112,10 @@ async def get_tf_tree(
     """
     logger.info(f"Getting TF tree at timestamp {timestamp}")
     
-    if not _get_bag_files_fn:
+    if not get_bag_files:
         return {"error": "Bag files function not provided"}
     
-    bags = _get_bag_files_fn(bag_path)
+    bags = get_bag_files(bag_path)
     if not bags:
         return {"error": "No bag files found"}
     
@@ -130,7 +133,7 @@ async def get_tf_tree(
                 # First collect static transforms (they don't change with time)
                 for conn, msg_timestamp, rawdata in reader.messages():
                     if conn.topic == static_tf_topic:
-                        _, msg_dict = _deserialize_message_fn(rawdata, conn.msgtype)
+                        _, msg_dict = deserialize_message(rawdata, conn.msgtype)
                         
                         for tf in msg_dict.get('transforms', []):
                             parent = tf.get('header', {}).get('frame_id', '')
@@ -151,7 +154,7 @@ async def get_tf_tree(
                         if abs(msg_timestamp - target_ns) > tolerance_ns:
                             continue
                         
-                        _, msg_dict = _deserialize_message_fn(rawdata, conn.msgtype)
+                        _, msg_dict = deserialize_message(rawdata, conn.msgtype)
                         
                         for tf in msg_dict.get('transforms', []):
                             parent = tf.get('header', {}).get('frame_id', '')
@@ -228,8 +231,7 @@ async def get_tf_tree(
 
 def register_tf_tools(server, get_bag_files_fn, deserialize_message_fn, config):
     """Register TF tree tools with the MCP server."""
-    from mcp.types import Tool
-    
+        
     tools = [
         Tool(
             name="get_tf_tree",

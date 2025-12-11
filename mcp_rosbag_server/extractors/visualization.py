@@ -5,7 +5,7 @@ Simplified visualization tools for creating plots from ROS bag data.
 
 import json
 import numpy as np
-from typing import Dict, Any, List, Optional, Callable, Tuple
+from typing import Dict, Any, List, Optional, Tuple
 import logging
 from pathlib import Path
 from datetime import datetime
@@ -13,6 +13,9 @@ from datetime import datetime
 from rosbags.rosbag2 import Reader
 
 logger = logging.getLogger(__name__)
+
+# Import mcp instance and helper functions from shared module
+from ..shared import mcp, get_bag_files, deserialize_message, config
 
 
 def save_plot_files(fig, plot_type: str, bag_path: Optional[str] = None) -> Dict[str, str]:
@@ -99,6 +102,7 @@ def extract_field_value(msg_data: Dict[str, Any], field_path: str) -> Any:
         return None
 
 
+@mcp.tool()
 async def plot_timeseries(
     fields: List[str],
     start_time: float,
@@ -108,10 +112,9 @@ async def plot_timeseries(
     x_label: str = "Time (s)",
     y_label: str = "Value",
     bag_path: Optional[str] = None,
-    _get_bag_files_fn: Callable = None,
-    _deserialize_message_fn: Callable = None,
-    config: Dict[str, Any] = None
-) -> Dict[str, Any]:
+    config: Dict[str,
+    Any] = None
+)-> Dict[str, Any]:
     """
     Create a time series plot with various styles.
     
@@ -127,10 +130,10 @@ async def plot_timeseries(
     """
     logger.info(f"Creating {plot_style} time series plot for {len(fields)} fields")
     
-    if not _get_bag_files_fn:
+    if not get_bag_files:
         return {"error": "Bag files function not provided"}
     
-    bags = _get_bag_files_fn(bag_path)
+    bags = get_bag_files(bag_path)
     if not bags:
         return {"error": "No bag files found"}
     
@@ -162,7 +165,7 @@ async def plot_timeseries(
                         continue
                     
                     time_sec = timestamp / 1e9
-                    _, msg_dict = _deserialize_message_fn(rawdata, conn.msgtype)
+                    _, msg_dict = deserialize_message(rawdata, conn.msgtype)
                     
                     for spec in field_specs:
                         if spec["topic"] == conn.topic:
@@ -290,6 +293,7 @@ async def plot_timeseries(
     }
 
 
+@mcp.tool()
 async def plot_2d(
     x_field: str,
     y_field: str,
@@ -301,17 +305,16 @@ async def plot_2d(
     y_label: str = "Y",
     equal_aspect: bool = True,
     bag_path: Optional[str] = None,
-    _get_bag_files_fn: Callable = None,
-    _deserialize_message_fn: Callable = None,
-    config: Dict[str, Any] = None
-) -> Dict[str, Any]:
+    config: Dict[str,
+    Any] = None
+)-> Dict[str, Any]:
     """Create a 2D plot (e.g., trajectory, X-Y relationship)."""
     logger.info(f"Creating 2D plot: {x_field} vs {y_field}")
     
-    if not _get_bag_files_fn:
+    if not get_bag_files:
         return {"error": "Bag files function not provided"}
     
-    bags = _get_bag_files_fn(bag_path)
+    bags = get_bag_files(bag_path)
     if not bags:
         return {"error": "No bag files found"}
     
@@ -341,7 +344,7 @@ async def plot_2d(
                             continue
                         
                         time_sec = timestamp / 1e9
-                        _, msg_dict = _deserialize_message_fn(rawdata, conn.msgtype)
+                        _, msg_dict = deserialize_message(rawdata, conn.msgtype)
                         
                         x_val = extract_field_value(msg_dict, x_field_path)
                         y_val = extract_field_value(msg_dict, y_field_path)
@@ -372,7 +375,7 @@ async def plot_2d(
                             continue
                         
                         time_sec = timestamp / 1e9
-                        _, msg_dict = _deserialize_message_fn(rawdata, conn.msgtype)
+                        _, msg_dict = deserialize_message(rawdata, conn.msgtype)
                         
                         if conn.topic == x_topic:
                             val = extract_field_value(msg_dict, x_field_path)
@@ -499,8 +502,7 @@ async def plot_2d(
 
 def register_visualization_tools(server, get_bag_files_fn, deserialize_message_fn, config):
     """Register visualization tools with the MCP server."""
-    from mcp.types import Tool
-    
+        
     tools = [
         Tool(
             name="plot_timeseries",
