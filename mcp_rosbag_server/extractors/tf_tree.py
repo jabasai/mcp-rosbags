@@ -94,8 +94,7 @@ async def get_tf_tree(
     timestamp: float,
     tf_topic: str = "/tf",
     static_tf_topic: str = "/tf_static",
-    bag_path: Optional[str] = None,
-    config: Dict[str, Any] = None
+    bag_path: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Get the TF tree structure at a specific timestamp.

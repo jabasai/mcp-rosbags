@@ -143,8 +143,7 @@ async def get_image_at_time(
     tolerance: float = 0.1,
     max_size: int = 512,
     quality: int = 85,
-    bag_path: Optional[str] = None,
-    config: Dict[str, Any] = None
+    bag_path: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Get an image from a camera topic at a specific time, encoded for LLM consumption.

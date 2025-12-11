@@ -111,8 +111,7 @@ async def plot_timeseries(
     title: str = "Time Series Plot",
     x_label: str = "Time (s)",
     y_label: str = "Value",
-    bag_path: Optional[str] = None,
-    config: Dict[str, Any] = None
+    bag_path: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Create a time series plot with various styles.
@@ -303,8 +302,7 @@ async def plot_2d(
     x_label: str = "X",
     y_label: str = "Y",
     equal_aspect: bool = True,
-    bag_path: Optional[str] = None,
-    config: Dict[str, Any] = None
+    bag_path: Optional[str] = None
 ) -> Dict[str, Any]:
     """Create a 2D plot (e.g., trajectory, X-Y relationship)."""
     logger.info(f"Creating 2D plot: {x_field} vs {y_field}")

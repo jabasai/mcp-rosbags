@@ -136,8 +136,7 @@ async def analyze_lidar_scan(
     start_time: Optional[float] = None,
     end_time: Optional[float] = None,
     aggregate: bool = False,
-    bag_path: Optional[str] = None,
-    config: Dict[str, Any] = None
+    bag_path: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Analyze LiDAR scan data for obstacles and gaps.
@@ -313,8 +312,7 @@ async def plot_lidar_scan(
     timestamp: float,
     title: str = "LiDAR Scan",
     show_sectors: bool = True,
-    bag_path: Optional[str] = None,
-    config: Dict[str, Any] = None
+    bag_path: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Create a polar plot of a LiDAR scan.
