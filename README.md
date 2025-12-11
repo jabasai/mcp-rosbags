@@ -282,11 +282,6 @@ The server supports standard ROS message types including:
 
 This project is licensed under the Apache License 2.0. See [LICENSE](LICENSE) for details.
 
-## Support
-
-- **Issues**: Report bugs and request features on [GitHub Issues](https://github.com/binabik-ai/mcp-rosbags/issues)
-- **Contact**: dev@binabik.ai
-
 ## Acknowledgments
 
 Built with the [Model Context Protocol](https://modelcontextprotocol.io/) and the [rosbags](https://github.com/ternaris/rosbags) library.
