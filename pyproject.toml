@@ -3,7 +3,7 @@ name = "mcp-rosbag-server"
 version = "0.1.0"
 description = "Model Context Protocol server for ROS bag analysis"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [
     { name = "MCP Rosbag Contributors" }
@@ -24,17 +24,14 @@ dependencies = [
     "typeguard>=4.0",
     "pillow>=10.0",
     "mcp>=1.0",
-    "rosbags>=0.9,<0.10",
+    "rosbags>=0.11",
     "numpy>=1.24",
     "plotly>=5.0",
     "pyyaml>=6.0",
+    "matplotlib>=3.10.8",
 ]
 
 [project.optional-dependencies]
-ros2 = [
-    "rclpy",
-    "rosidl_runtime_py",
-]
 dev = [
     "pytest>=7.0",
     "pytest-asyncio>=0.21",

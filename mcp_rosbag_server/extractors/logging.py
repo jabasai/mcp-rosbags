@@ -14,11 +14,11 @@ logger = logging.getLogger(__name__)
 
 # ROS log levels
 LOG_LEVELS = {
-    "DEBUG": 1,
-    "INFO": 2,
-    "WARN": 4,
-    "ERROR": 8,
-    "FATAL": 16
+    "DEBUG": 10,
+    "INFO": 20,
+    "WARN": 30,
+    "ERROR": 40,
+    "FATAL": 50
 }
 
 LEVEL_NAMES = {v: k for k, v in LOG_LEVELS.items()}

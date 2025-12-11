@@ -62,12 +62,8 @@ For development or editable installs:
     uv pip install -e .
     ```
 
-2. **Optional: Install with ROS 2 support:**
-    ```bash
-    uv pip install -e .[ros2]
-    ```
 
-3. **Optional: Install development dependencies:**
+2. **Optional: Install development dependencies:**
     ```bash
     uv pip install -e .[dev]
     ```
@@ -89,11 +85,6 @@ For development or editable installs:
 3. **Install dependencies:**
     ```bash
     pip install -e .
-    ```
-
-4. **Optional: Install with ROS 2 support:**
-    ```bash
-    pip install -e .[ros2]
     ```
 
 ## Docker Deployment
