@@ -19,6 +19,38 @@ This MCP server provides comprehensive tools for ROS bag analysis, supporting bo
 
 ## Installation
 
+### Using uv (Recommended)
+
+[uv](https://github.com/astral-sh/uv) is a fast Python package installer and resolver.
+
+1. **Install uv** (if not already installed):
+    ```bash
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    ```
+
+2. **Clone the repository:**
+    ```bash
+    git clone https://github.com/binabik-ai/mcp-rosbags.git
+    cd mcp-rosbags
+    ```
+
+3. **Install dependencies:**
+    ```bash
+    uv pip install -e .
+    ```
+
+4. **Optional: Install with ROS 2 support:**
+    ```bash
+    uv pip install -e .[ros2]
+    ```
+
+5. **Optional: Install development dependencies:**
+    ```bash
+    uv pip install -e .[dev]
+    ```
+
+### Using pip (Traditional)
+
 1. **Clone the repository:**
     ```bash
     git clone https://github.com/binabik-ai/mcp-rosbags.git
@@ -33,7 +65,7 @@ This MCP server provides comprehensive tools for ROS bag analysis, supporting bo
 
 3. **Install dependencies:**
     ```bash
-    pip install -r requirements.txt
+    pip install -e .
     ```
 
 4. **Optional: Install with ROS 2 support:**
@@ -86,7 +118,7 @@ docker run -it --rm \
 ### Docker Configuration
 
 The Docker container:
-- Uses **ROS 2 Humble** as the base image for full ROS 2 support
+- Uses **Python 3.11 slim** as the base image with uv for fast dependency installation
 - Mounts your ROS bag directory to `/rosbags` (read-only)
 - Mounts configuration files to `/app/src/config` (read-only)
 - Writes logs to `/tmp/mcp_rosbag_*.log` inside the container
@@ -98,6 +130,23 @@ The Docker container:
 ### Claude Desktop Configuration
 
 Add this to your Claude Desktop configuration file:
+
+```json
+{
+  "mcpServers": {
+    "rosbag_reader": {
+      "command": "uv",
+      "args": ["run", "python", "/path/to/mcp-rosbags/src/server.py"],
+      "env": {
+        "MCP_ROSBAG_DIR": "/path/to/your/rosbags",
+        "MCP_ROSBAG_CONFIG": "/path/to/mcp-rosbags/src/config"
+      }
+    }
+  }
+}
+```
+
+Or if using a virtual environment directly:
 
 ```json
 {

@@ -3,9 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: mcp-rosbags:latest
-    container_name: mcp-rosbags-server
-    
+    image: registry.services.jabas.ai/jabasai/mcp-rosbags:latest
     # Mount directories for rosbags and configuration
     volumes:
       # Mount your local rosbag directory to /rosbags in the container

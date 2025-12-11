@@ -1,36 +1,25 @@
-# Use ROS 2 Humble base image
-FROM ros:humble-ros-base
+# Use Python 3.11 slim image
+FROM python:3.11-slim
 
 # Set working directory
 WORKDIR /app
 
-# Install Python dependencies and additional tools
-RUN apt-get update && apt-get install -y \
-    python3-pip \
-    python3-dev \
-    ca-certificates \
-    && update-ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-# Copy requirements first for better caching
-COPY requirements.txt .
+# Copy dependency files first for better caching
+COPY pyproject.toml README.md .python-version* /app/
 
-# Install Python dependencies
-# Note: In environments with SSL interception (corporate proxies, some CI systems),
-# the standard pip install may fail due to self-signed certificates in the chain.
-# We first try the standard secure method, then fall back to specifying PyPI as trusted
-# only if necessary. In production, configure proper CA certificates instead.
-RUN pip3 install --no-cache-dir -r requirements.txt || \
-    (echo "Standard pip install failed, likely due to SSL certificate issues in this environment." && \
-     echo "Attempting install with explicit PyPI trust (not recommended for production)." && \
-     pip3 install --trusted-host pypi.org --trusted-host files.pythonhosted.org --no-cache-dir -r requirements.txt)
+
 
 # Copy the application code
 COPY src/ ./src/
-COPY setup.py .
 
-# Install the package
-RUN pip3 install -e .
+# Install dependencies and the package
+# Note: In environments with SSL interception (corporate proxies, some CI systems),
+# you may need to configure CA certificates or use custom registry settings.
+# uv respects UV_INDEX_URL and UV_EXTRA_INDEX_URL environment variables.
+RUN uv pip install --system --no-cache -e .
 
 # Set environment variables
 ENV PYTHONPATH=/app/src

@@ -3,7 +3,6 @@
 .gitignore
 
 # Exclude documentation
-*.md
 LICENSE
 
 # Exclude test and log files
@@ -25,6 +24,7 @@ build/
 rosbags/
 
 # Exclude virtual environments
+.venv/
 venv/
 env/
 ENV/
