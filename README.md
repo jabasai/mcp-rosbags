@@ -19,6 +19,61 @@ This MCP server provides comprehensive tools for ROS bag analysis, supporting bo
 
 ## Installation
 
+### Using uv (Recommended)
+
+[uv](https://github.com/astral-sh/uv) is a fast Python package installer and resolver.
+
+#### Quick Start with uv tool
+
+The fastest way to run the server:
+
+1. **Install uv** (if not already installed):
+    ```bash
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    ```
+
+2. **Clone the repository:**
+    ```bash
+    git clone https://github.com/binabik-ai/mcp-rosbags.git
+    cd mcp-rosbags
+    ```
+
+3. **Run directly as a tool (no installation needed):**
+    ```bash
+    uv tool run --from . mcp-rosbag-server
+    ```
+
+4. **Or install as a global tool:**
+    ```bash
+    uv tool install .
+    ```
+    
+    Then run from anywhere:
+    ```bash
+    mcp-rosbag-server
+    ```
+
+#### Development Installation
+
+For development or editable installs:
+
+1. **Install dependencies:**
+    ```bash
+    uv pip install -e .
+    ```
+
+2. **Optional: Install with ROS 2 support:**
+    ```bash
+    uv pip install -e .[ros2]
+    ```
+
+3. **Optional: Install development dependencies:**
+    ```bash
+    uv pip install -e .[dev]
+    ```
+
+### Using pip (Traditional)
+
 1. **Clone the repository:**
     ```bash
     git clone https://github.com/binabik-ai/mcp-rosbags.git
@@ -33,7 +88,7 @@ This MCP server provides comprehensive tools for ROS bag analysis, supporting bo
 
 3. **Install dependencies:**
     ```bash
-    pip install -r requirements.txt
+    pip install -e .
     ```
 
 4. **Optional: Install with ROS 2 support:**
@@ -41,22 +96,104 @@ This MCP server provides comprehensive tools for ROS bag analysis, supporting bo
     pip install -e .[ros2]
     ```
 
+## Docker Deployment
+
+### Building the Docker Image
+
+Build the Docker image using the provided Dockerfile:
+
+```bash
+docker build -t mcp-rosbags:latest .
+```
+
+### Running with Docker Compose
+
+The easiest way to run the MCP server in a container is using Docker Compose:
+
+1. **Place your ROS bag files** in the `./rosbags` directory (or modify the volume mount in `compose.yaml`)
+
+2. **Start the container:**
+    ```bash
+    docker compose up -d
+    ```
+
+3. **View logs:**
+    ```bash
+    docker compose logs -f
+    ```
+
+4. **Stop the container:**
+    ```bash
+    docker compose down
+    ```
+
+### Running with Docker
+
+You can also run the container directly:
+
+```bash
+docker run -it --rm \
+  -v /path/to/your/rosbags:/rosbags:ro \
+  -v $(pwd)/src/config:/app/src/config:ro \
+  mcp-rosbags:latest
+```
+
+### Docker Configuration
+
+The Docker container:
+- Uses **Python 3.11 slim** as the base image with uv for fast dependency installation
+- Mounts your ROS bag directory to `/rosbags` (read-only)
+- Mounts configuration files to `/app/src/config` (read-only)
+- Writes logs to `/tmp/mcp_rosbag_*.log` inside the container
+  - When using Docker Compose, these are accessible on the host at `./logs/mcp_rosbag_*.log`
+- Communicates via stdin/stdout (MCP protocol)
+
 ## Configuration
 
 ### Claude Desktop Configuration
 
 Add this to your Claude Desktop configuration file:
 
+**Recommended: Using uv tool (after `uv tool install .`):**
+
 ```json
 {
   "mcpServers": {
     "rosbag_reader": {
-      "command": "/path/to/your/venv/bin/python",
-      "args": ["/path/to/mcp-rosbags/src/server.py"],
+      "command": "mcp-rosbag-server",
       "env": {
-        "PYTHONPATH": "/path/to/mcp-rosbags/src",
-        "MCP_ROSBAG_DIR": "/path/to/your/rosbags",
-        "MCP_ROSBAG_CONFIG": "/path/to/mcp-rosbags/src/config"
+        "MCP_ROSBAG_DIR": "/path/to/your/rosbags"
+      }
+    }
+  }
+}
+```
+
+**Alternative: Using uv tool run (no installation required):**
+
+```json
+{
+  "mcpServers": {
+    "rosbag_reader": {
+      "command": "uv",
+      "args": ["tool", "run", "--from", "/path/to/mcp-rosbags", "mcp-rosbag-server"],
+      "env": {
+        "MCP_ROSBAG_DIR": "/path/to/your/rosbags"
+      }
+    }
+  }
+}
+```
+
+**Alternative: Using virtual environment:**
+
+```json
+{
+  "mcpServers": {
+    "rosbag_reader": {
+      "command": "/path/to/your/venv/bin/mcp-rosbag-server",
+      "env": {
+        "MCP_ROSBAG_DIR": "/path/to/your/rosbags"
       }
     }
   }

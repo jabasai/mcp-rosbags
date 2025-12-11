@@ -22,19 +22,19 @@ from rosbags.rosbag2 import Reader
 from rosbags.serde import deserialize_cdr
 
 # Import core utilities
-from core.message_utils import msg_to_dict
-from core.schema_manager import SchemaManager
-from core.cache_manager import CacheManager
+from .core.message_utils import msg_to_dict
+from .core.schema_manager import SchemaManager
+from .core.cache_manager import CacheManager
 
 # Import simplified extractors
-from extractors.search import register_search_tools
-from extractors.logging import register_logging_tools
-from extractors.trajectory import register_trajectory_tools
-from extractors.visualization import register_visualization_tools
-from extractors.bag_management import register_bag_management_tools
-from extractors.lidar import register_lidar_tools
-from extractors.tf_tree import register_tf_tools
-from extractors.image import register_image_tools
+from .extractors.search import register_search_tools
+from .extractors.logging import register_logging_tools
+from .extractors.trajectory import register_trajectory_tools
+from .extractors.visualization import register_visualization_tools
+from .extractors.bag_management import register_bag_management_tools
+from .extractors.lidar import register_lidar_tools
+from .extractors.tf_tree import register_tf_tools
+from .extractors.image import register_image_tools
 
 import logging
 
@@ -51,7 +51,9 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Global configuration
-CONFIG_DIR = Path(os.environ.get("MCP_ROSBAG_CONFIG", "./config"))
+# Default to config directory relative to this source file
+_DEFAULT_CONFIG_DIR = Path(__file__).parent / "config"
+CONFIG_DIR = Path(os.environ.get("MCP_ROSBAG_CONFIG", str(_DEFAULT_CONFIG_DIR)))
 BAG_DIRECTORY = Path(os.environ.get("MCP_ROSBAG_DIR", "./rosbags"))
 CURRENT_BAG_PATH = None  # Can be a single file or directory
 
@@ -634,13 +636,16 @@ async def bag_info(bag_path: str) -> Dict[str, Any]:
     
     return info
 
-async def main():
+async def async_main():
     """Run the MCP server."""
     import argparse
     
+    # Default to config directory relative to this source file
+    default_config_dir = Path(__file__).parent / "config"
+    
     parser = argparse.ArgumentParser(description="MCP server for rosbag memory")
     parser.add_argument("--bag-dir", default="./rosbags", help="Directory containing rosbag files")
-    parser.add_argument("--config-dir", default="./config", help="Directory containing configuration files")
+    parser.add_argument("--config-dir", default=str(default_config_dir), help="Directory containing configuration files")
     args = parser.parse_args()
     
     global BAG_DIRECTORY, CONFIG_DIR
@@ -665,5 +670,9 @@ async def main():
     except Exception as e:
         logger.error(f"Server error: {e}", exc_info=True)
 
+def main():
+    """Entry point for the MCP server."""
+    asyncio.run(async_main())
+
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
