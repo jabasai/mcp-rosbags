@@ -19,11 +19,30 @@ CURRENT_BAG_PATH: Optional[Path] = None
 BAG_DIRECTORY: Optional[Path] = None
 
 def is_ros2_bag_dir(path: Path) -> bool:
-    """Check if a directory is a ROS 2 bag directory."""
+    """Check if a directory is a ROS 2 bag directory.
+    
+    Args:
+        path: Path to check
+        
+    Returns:
+        True if the directory contains a metadata.yaml file (indicating a ROS 2 bag), False otherwise
+    """
     return (path / 'metadata.yaml').exists()
 
 def get_bag_files(custom_path: Optional[str] = None) -> List[Path]:
-    """Get all rosbag files in the directory or from custom path."""
+    """Get all rosbag files in the directory or from custom path.
+    
+    This function searches for ROS bag files in various formats:
+    - Individual .mcap or .db3 files
+    - ROS 2 bag directories (containing metadata.yaml)
+    - Nested directories containing bag files
+    
+    Args:
+        custom_path: Optional custom path to search. If not provided, uses CURRENT_BAG_PATH or BAG_DIRECTORY
+        
+    Returns:
+        Sorted list of Path objects pointing to bag files or directories
+    """
     from rosbags.rosbag2 import Reader
     
     bags = []
@@ -70,7 +89,21 @@ def get_bag_files(custom_path: Optional[str] = None) -> List[Path]:
     return sorted(bags)
 
 def deserialize_message(rawdata: bytes, msg_type: str) -> Tuple[Any, Dict[str, Any]]:
-    """Deserialize message data and apply schema extraction."""
+    """Deserialize message data and apply schema extraction.
+    
+    This function takes raw CDR-serialized message data and converts it to a Python dictionary.
+    It also applies schema extraction if a schema manager is configured, which extracts only
+    relevant fields according to predefined schemas.
+    
+    Args:
+        rawdata: Raw bytes from the bag file containing CDR-serialized message data
+        msg_type: ROS message type string (e.g., 'sensor_msgs/msg/LaserScan')
+        
+    Returns:
+        A tuple containing:
+        - The deserialized message object
+        - A dictionary representation (either full or schema-extracted)
+    """
     from .core.message_utils import msg_to_dict
     
     msg = typestore.deserialize_cdr(rawdata, msg_type)
