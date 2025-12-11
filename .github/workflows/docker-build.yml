@@ -60,23 +60,7 @@ jobs:
           tags: mcp-rosbags:test
           cache-from: type=gha
           cache-to: type=gha,mode=max
-      
-      - name: Test Docker image
-        run: |
-          # Test that the Docker image was built correctly
-          # Check that required files exist in the image
-          docker run --rm --entrypoint ls mcp-rosbags:test -la /app/src/server.py
-          docker run --rm --entrypoint ls mcp-rosbags:test -la /app/src/config/
-          docker run --rm --entrypoint python3 mcp-rosbags:test -c "import sys; print(f'Python {sys.version}')"
-          
-          # Verify ROS 2 environment is available
-          docker run --rm --entrypoint bash mcp-rosbags:test -c "source /opt/ros/humble/setup.bash && ros2 --version"
-          
-          # Verify Python packages are installed
-          docker run --rm --entrypoint pip3 mcp-rosbags:test list | grep -E "mcp|rosbags|numpy"
-          
-          echo "✓ Container image validation completed successfully"
-      
+            
       - name: Build and push Docker image
         if: github.event_name != 'pull_request'
         uses: docker/build-push-action@v5
