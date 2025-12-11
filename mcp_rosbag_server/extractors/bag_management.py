@@ -11,7 +11,6 @@ from pathlib import Path
 from datetime import datetime
 
 from rosbags.rosbag2 import Reader, Writer
-from rosbags.serde import serialize_cdr
 import sqlite3
 
 logger = logging.getLogger(__name__)

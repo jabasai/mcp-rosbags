@@ -19,7 +19,7 @@ from mcp.types import Tool, TextContent
 import mcp.server.stdio
 
 from rosbags.rosbag2 import Reader
-from rosbags.serde import deserialize_cdr
+from rosbags.typesys import Stores, get_typestore
 
 # Import core utilities
 from .core.message_utils import msg_to_dict
@@ -64,13 +64,14 @@ server = Server("rosbag-memory")
 schema_manager: Optional[SchemaManager] = None
 cache_manager: Optional[CacheManager] = None
 config: Dict[str, Any] = {}
+typestore = None  # Will be initialized in initialize_components()
 
 # Store tool handlers
 tool_handlers = {}
 
 def initialize_components():
     """Initialize all components from config."""
-    global schema_manager, cache_manager, config
+    global schema_manager, cache_manager, config, typestore
     
     # Load configuration
     config_file = CONFIG_DIR / "server_config.yaml"
@@ -97,6 +98,10 @@ def initialize_components():
             }
         }
         logger.warning(f"No config file found at {config_file}, using defaults")
+    
+    # Initialize typestore for deserialization
+    typestore = get_typestore(Stores.LATEST)
+    logger.info("Initialized typestore for message deserialization")
     
     # Initialize schema manager
     schema_file = CONFIG_DIR / "message_schemas.yaml"
@@ -161,7 +166,7 @@ def _get_bag_files(custom_path: Optional[str] = None) -> List[Path]:
 
 def _deserialize_message(rawdata: bytes, msg_type: str) -> Tuple[Any, Dict[str, Any]]:
     """Deserialize message data and apply schema extraction."""
-    msg = deserialize_cdr(rawdata, msg_type)
+    msg = typestore.deserialize_cdr(rawdata, msg_type)
     msg_dict = msg_to_dict(msg, msg_type)
     
     # Apply schema extraction if available
