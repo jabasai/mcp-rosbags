@@ -23,6 +23,10 @@ This MCP server provides comprehensive tools for ROS bag analysis, supporting bo
 
 [uv](https://github.com/astral-sh/uv) is a fast Python package installer and resolver.
 
+#### Quick Start with uv tool
+
+The fastest way to run the server:
+
 1. **Install uv** (if not already installed):
     ```bash
     curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -34,17 +38,36 @@ This MCP server provides comprehensive tools for ROS bag analysis, supporting bo
     cd mcp-rosbags
     ```
 
-3. **Install dependencies:**
+3. **Run directly as a tool (no installation needed):**
+    ```bash
+    uv tool run --from . mcp-rosbag-server
+    ```
+
+4. **Or install as a global tool:**
+    ```bash
+    uv tool install .
+    ```
+    
+    Then run from anywhere:
+    ```bash
+    mcp-rosbag-server
+    ```
+
+#### Development Installation
+
+For development or editable installs:
+
+1. **Install dependencies:**
     ```bash
     uv pip install -e .
     ```
 
-4. **Optional: Install with ROS 2 support:**
+2. **Optional: Install with ROS 2 support:**
     ```bash
     uv pip install -e .[ros2]
     ```
 
-5. **Optional: Install development dependencies:**
+3. **Optional: Install development dependencies:**
     ```bash
     uv pip install -e .[dev]
     ```
@@ -131,33 +154,46 @@ The Docker container:
 
 Add this to your Claude Desktop configuration file:
 
+**Recommended: Using uv tool (after `uv tool install .`):**
+
 ```json
 {
   "mcpServers": {
     "rosbag_reader": {
-      "command": "uv",
-      "args": ["run", "python", "/path/to/mcp-rosbags/src/server.py"],
+      "command": "mcp-rosbag-server",
       "env": {
-        "MCP_ROSBAG_DIR": "/path/to/your/rosbags",
-        "MCP_ROSBAG_CONFIG": "/path/to/mcp-rosbags/src/config"
+        "MCP_ROSBAG_DIR": "/path/to/your/rosbags"
       }
     }
   }
 }
 ```
 
-Or if using a virtual environment directly:
+**Alternative: Using uv tool run (no installation required):**
 
 ```json
 {
   "mcpServers": {
     "rosbag_reader": {
-      "command": "/path/to/your/venv/bin/python",
-      "args": ["/path/to/mcp-rosbags/src/server.py"],
+      "command": "uv",
+      "args": ["tool", "run", "--from", "/path/to/mcp-rosbags", "mcp-rosbag-server"],
       "env": {
-        "PYTHONPATH": "/path/to/mcp-rosbags/src",
-        "MCP_ROSBAG_DIR": "/path/to/your/rosbags",
-        "MCP_ROSBAG_CONFIG": "/path/to/mcp-rosbags/src/config"
+        "MCP_ROSBAG_DIR": "/path/to/your/rosbags"
+      }
+    }
+  }
+}
+```
+
+**Alternative: Using virtual environment:**
+
+```json
+{
+  "mcpServers": {
+    "rosbag_reader": {
+      "command": "/path/to/your/venv/bin/mcp-rosbag-server",
+      "env": {
+        "MCP_ROSBAG_DIR": "/path/to/your/rosbags"
       }
     }
   }
