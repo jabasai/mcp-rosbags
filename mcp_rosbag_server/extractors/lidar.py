@@ -137,9 +137,8 @@ async def analyze_lidar_scan(
     end_time: Optional[float] = None,
     aggregate: bool = False,
     bag_path: Optional[str] = None,
-    config: Dict[str,
-    Any] = None
-)-> Dict[str, Any]:
+    config: Dict[str, Any] = None
+) -> Dict[str, Any]:
     """
     Analyze LiDAR scan data for obstacles and gaps.
     
@@ -315,9 +314,8 @@ async def plot_lidar_scan(
     title: str = "LiDAR Scan",
     show_sectors: bool = True,
     bag_path: Optional[str] = None,
-    config: Dict[str,
-    Any] = None
-)-> Dict[str, Any]:
+    config: Dict[str, Any] = None
+) -> Dict[str, Any]:
     """
     Create a polar plot of a LiDAR scan.
     
@@ -484,73 +482,4 @@ async def plot_lidar_scan(
         "interactive_link": f"file://{html_path.absolute()}",
         "scan_analysis": analysis,
         "data_points": len(valid_ranges)
-    }
-
-
-def register_lidar_tools(server, get_bag_files_fn, deserialize_message_fn, config):
-    """Register LiDAR analysis tools with the MCP server."""
-        
-    tools = [
-        Tool(
-            name="analyze_lidar_scan",
-            description="Analyze LiDAR/LaserScan data for obstacles, gaps, and statistics",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "topic": {"type": "string", "description": "LaserScan topic name (e.g., /scan, /laser)"},
-                    "timestamp": {"type": "number", "description": "Specific timestamp for single scan analysis"},
-                    "start_time": {"type": "number", "description": "Start time for range analysis"},
-                    "end_time": {"type": "number", "description": "End time for range analysis"},
-                    "aggregate": {"type": "boolean", "description": "Return only aggregate stats, not individual scans"},
-                    "bag_path": {"type": "string", "description": "Optional: specific bag file or directory"}
-                },
-                "required": ["topic"]
-            }
-        ),
-        Tool(
-            name="plot_lidar_scan",
-            description="Create a polar plot visualization of a LiDAR scan",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "topic": {"type": "string", "description": "LaserScan topic name"},
-                    "timestamp": {"type": "number", "description": "Timestamp of scan to plot"},
-                    "title": {"type": "string", "description": "Plot title (default: 'LiDAR Scan')"},
-                    "show_sectors": {"type": "boolean", "description": "Show sector divisions (default: true)"},
-                    "bag_path": {"type": "string", "description": "Optional: specific bag file or directory"}
-                },
-                "required": ["topic", "timestamp"]
-            }
-        )
-    ]
-    
-    # Create handlers
-    async def handle_analyze_lidar_scan(args):
-        return await analyze_lidar_scan(
-            args["topic"],
-            args.get("timestamp"),
-            args.get("start_time"),
-            args.get("end_time"),
-            args.get("aggregate", False),
-            args.get("bag_path"),
-            get_bag_files_fn,
-            deserialize_message_fn,
-            config
-        )
-    
-    async def handle_plot_lidar_scan(args):
-        return await plot_lidar_scan(
-            args["topic"],
-            args["timestamp"],
-            args.get("title", "LiDAR Scan"),
-            args.get("show_sectors", True),
-            args.get("bag_path"),
-            get_bag_files_fn,
-            deserialize_message_fn,
-            config
-        )
-    
-    return tools, {
-        "analyze_lidar_scan": handle_analyze_lidar_scan,
-        "plot_lidar_scan": handle_plot_lidar_scan
     }

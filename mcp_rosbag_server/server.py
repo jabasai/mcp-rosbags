@@ -126,7 +126,7 @@ async def set_bag_path(path: str) -> Dict[str, Any]:
             "path": str(path_obj),
             "size_mb": path_obj.stat().st_size / (1024 * 1024)
         }
-    elif shared._is_ros2_bag_dir(path_obj):
+    elif shared.is_ros2_bag_dir(path_obj):
         # This is a ROS 2 bag directory
         db3_files = list(path_obj.glob("*.db3"))
         mcap_files = list(path_obj.glob("*.mcap"))
@@ -227,7 +227,7 @@ async def bag_info(bag_path: str) -> Dict[str, Any]:
         logger.error(f"Path does not exist: {bag_path}")
         return {"error": f"Path does not exist: {bag_path}"}
     
-    if not (path.is_file() and path.suffix in ['.mcap', '.db3']) and not shared._is_ros2_bag_dir(path):
+    if not (path.is_file() and path.suffix in ['.mcap', '.db3']) and not shared.is_ros2_bag_dir(path):
         logger.error(f"Not a valid rosbag: {bag_path}")
         return {"error": f"Not a valid rosbag: {bag_path}"}
     

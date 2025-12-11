@@ -144,9 +144,8 @@ async def get_image_at_time(
     max_size: int = 512,
     quality: int = 85,
     bag_path: Optional[str] = None,
-    config: Dict[str,
-    Any] = None
-)-> Dict[str, Any]:
+    config: Dict[str, Any] = None
+) -> Dict[str, Any]:
     """
     Get an image from a camera topic at a specific time, encoded for LLM consumption.
     
@@ -249,44 +248,3 @@ async def get_image_at_time(
     logger.info(f"Successfully extracted image: {width}x{height} -> {max_size}px max, {len(img_base64)/1024:.1f}KB")
     
     return result
-
-
-def register_image_tools(server, get_bag_files_fn, deserialize_message_fn, config):
-    """Register image extraction tools with the MCP server."""
-        
-    tools = [
-        Tool(
-            name="get_image_at_time",
-            description="Get a camera image at a specific time, compressed and encoded for LLM analysis. Returns base64 JPEG that LLMs can directly interpret.",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "topic": {"type": "string", "description": "Image topic (e.g., /camera/image_raw, /camera/compressed)"},
-                    "timestamp": {"type": "number", "description": "Unix timestamp in seconds"},
-                    "tolerance": {"type": "number", "description": "Time tolerance in seconds (default: 0.1)"},
-                    "max_size": {"type": "integer", "description": "Max image dimension in pixels (default: 512)"},
-                    "quality": {"type": "integer", "description": "JPEG quality 1-100 (default: 85)"},
-                    "bag_path": {"type": "string", "description": "Optional: specific bag file or directory"}
-                },
-                "required": ["topic", "timestamp"]
-            }
-        )
-    ]
-    
-    # Create handler
-    async def handle_get_image_at_time(args):
-        return await get_image_at_time(
-            args["topic"],
-            args["timestamp"],
-            args.get("tolerance", 0.1),
-            args.get("max_size", 512),
-            args.get("quality", 85),
-            args.get("bag_path"),
-            get_bag_files_fn,
-            deserialize_message_fn,
-            config
-        )
-    
-    return tools, {
-        "get_image_at_time": handle_get_image_at_time
-    }

@@ -95,9 +95,8 @@ async def get_tf_tree(
     tf_topic: str = "/tf",
     static_tf_topic: str = "/tf_static",
     bag_path: Optional[str] = None,
-    config: Dict[str,
-    Any] = None
-)-> Dict[str, Any]:
+    config: Dict[str, Any] = None
+) -> Dict[str, Any]:
     """
     Get the TF tree structure at a specific timestamp.
     
@@ -226,41 +225,4 @@ async def get_tf_tree(
         "static_count": len(static_transforms),
         "dynamic_count": len(dynamic_transforms),
         "transforms": transform_list
-    }
-
-
-def register_tf_tools(server, get_bag_files_fn, deserialize_message_fn, config):
-    """Register TF tree tools with the MCP server."""
-        
-    tools = [
-        Tool(
-            name="get_tf_tree",
-            description="Get the TF (transform) tree showing coordinate frame relationships at a specific time",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "timestamp": {"type": "number", "description": "Unix timestamp to query TF tree"},
-                    "tf_topic": {"type": "string", "description": "Dynamic transforms topic (default: /tf)"},
-                    "static_tf_topic": {"type": "string", "description": "Static transforms topic (default: /tf_static)"},
-                    "bag_path": {"type": "string", "description": "Optional: specific bag file or directory"}
-                },
-                "required": ["timestamp"]
-            }
-        )
-    ]
-    
-    # Create handler
-    async def handle_get_tf_tree(args):
-        return await get_tf_tree(
-            args["timestamp"],
-            args.get("tf_topic", "/tf"),
-            args.get("static_tf_topic", "/tf_static"),
-            args.get("bag_path"),
-            get_bag_files_fn,
-            deserialize_message_fn,
-            config
-        )
-    
-    return tools, {
-        "get_tf_tree": handle_get_tf_tree
     }

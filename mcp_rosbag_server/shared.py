@@ -18,7 +18,7 @@ typestore = None
 CURRENT_BAG_PATH: Optional[Path] = None
 BAG_DIRECTORY: Optional[Path] = None
 
-def _is_ros2_bag_dir(path: Path) -> bool:
+def is_ros2_bag_dir(path: Path) -> bool:
     """Check if a directory is a ROS 2 bag directory."""
     return (path / 'metadata.yaml').exists()
 
@@ -46,13 +46,13 @@ def get_bag_files(custom_path: Optional[str] = None) -> List[Path]:
     # Handle directory cases
     if search_path.is_dir():
         # Check if this is a ROS 2 bag directory itself
-        if _is_ros2_bag_dir(search_path):
+        if is_ros2_bag_dir(search_path):
             logger.debug(f"Found ROS 2 bag directory: {search_path}")
             return [search_path]
         
         # Otherwise look for bags inside
         for item in search_path.iterdir():
-            if item.is_dir() and _is_ros2_bag_dir(item):
+            if item.is_dir() and is_ros2_bag_dir(item):
                 # ROS 2 bag directory
                 bags.append(item)
             elif item.is_file() and item.suffix in ['.mcap', '.db3']:
@@ -61,9 +61,9 @@ def get_bag_files(custom_path: Optional[str] = None) -> List[Path]:
         
         # Also check subdirectories one level deep
         for subdir in search_path.iterdir():
-            if subdir.is_dir() and not _is_ros2_bag_dir(subdir):
+            if subdir.is_dir() and not is_ros2_bag_dir(subdir):
                 for item in subdir.iterdir():
-                    if item.is_dir() and _is_ros2_bag_dir(item):
+                    if item.is_dir() and is_ros2_bag_dir(item):
                         bags.append(item)
     
     logger.debug(f"Found {len(bags)} bag files/directories")
