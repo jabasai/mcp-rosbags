@@ -5,7 +5,7 @@ Simplified visualization tools for creating plots from ROS bag data.
 
 import json
 import numpy as np
-from typing import Dict, Any, List, Optional, Callable, Tuple
+from typing import Dict, Any, List, Optional, Tuple
 import logging
 from pathlib import Path
 from datetime import datetime
@@ -13,6 +13,9 @@ from datetime import datetime
 from rosbags.rosbag2 import Reader
 
 logger = logging.getLogger(__name__)
+
+# Import mcp instance and helper functions from shared module
+from ..shared import mcp, get_bag_files, deserialize_message, config
 
 
 def save_plot_files(fig, plot_type: str, bag_path: Optional[str] = None) -> Dict[str, str]:
@@ -99,6 +102,7 @@ def extract_field_value(msg_data: Dict[str, Any], field_path: str) -> Any:
         return None
 
 
+@mcp.tool()
 async def plot_timeseries(
     fields: List[str],
     start_time: float,
@@ -107,10 +111,7 @@ async def plot_timeseries(
     title: str = "Time Series Plot",
     x_label: str = "Time (s)",
     y_label: str = "Value",
-    bag_path: Optional[str] = None,
-    _get_bag_files_fn: Callable = None,
-    _deserialize_message_fn: Callable = None,
-    config: Dict[str, Any] = None
+    bag_path: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Create a time series plot with various styles.
@@ -127,10 +128,8 @@ async def plot_timeseries(
     """
     logger.info(f"Creating {plot_style} time series plot for {len(fields)} fields")
     
-    if not _get_bag_files_fn:
-        return {"error": "Bag files function not provided"}
-    
-    bags = _get_bag_files_fn(bag_path)
+
+    bags = get_bag_files(bag_path)
     if not bags:
         return {"error": "No bag files found"}
     
@@ -162,7 +161,7 @@ async def plot_timeseries(
                         continue
                     
                     time_sec = timestamp / 1e9
-                    _, msg_dict = _deserialize_message_fn(rawdata, conn.msgtype)
+                    _, msg_dict = deserialize_message(rawdata, conn.msgtype)
                     
                     for spec in field_specs:
                         if spec["topic"] == conn.topic:
@@ -290,6 +289,7 @@ async def plot_timeseries(
     }
 
 
+@mcp.tool()
 async def plot_2d(
     x_field: str,
     y_field: str,
@@ -300,18 +300,15 @@ async def plot_2d(
     x_label: str = "X",
     y_label: str = "Y",
     equal_aspect: bool = True,
-    bag_path: Optional[str] = None,
-    _get_bag_files_fn: Callable = None,
-    _deserialize_message_fn: Callable = None,
-    config: Dict[str, Any] = None
+    bag_path: Optional[str] = None
 ) -> Dict[str, Any]:
     """Create a 2D plot (e.g., trajectory, X-Y relationship)."""
     logger.info(f"Creating 2D plot: {x_field} vs {y_field}")
     
-    if not _get_bag_files_fn:
+    if not get_bag_files:
         return {"error": "Bag files function not provided"}
     
-    bags = _get_bag_files_fn(bag_path)
+    bags = get_bag_files(bag_path)
     if not bags:
         return {"error": "No bag files found"}
     
@@ -341,7 +338,7 @@ async def plot_2d(
                             continue
                         
                         time_sec = timestamp / 1e9
-                        _, msg_dict = _deserialize_message_fn(rawdata, conn.msgtype)
+                        _, msg_dict = deserialize_message(rawdata, conn.msgtype)
                         
                         x_val = extract_field_value(msg_dict, x_field_path)
                         y_val = extract_field_value(msg_dict, y_field_path)
@@ -372,7 +369,7 @@ async def plot_2d(
                             continue
                         
                         time_sec = timestamp / 1e9
-                        _, msg_dict = _deserialize_message_fn(rawdata, conn.msgtype)
+                        _, msg_dict = deserialize_message(rawdata, conn.msgtype)
                         
                         if conn.topic == x_topic:
                             val = extract_field_value(msg_dict, x_field_path)
@@ -494,94 +491,4 @@ async def plot_2d(
             "end_point": {"x": round(data_points[-1]["x"], 3), "y": round(data_points[-1]["y"], 3)}
         },
         **files
-    }
-
-
-def register_visualization_tools(server, get_bag_files_fn, deserialize_message_fn, config):
-    """Register visualization tools with the MCP server."""
-    from mcp.types import Tool
-    
-    tools = [
-        Tool(
-            name="plot_timeseries",
-            description="Plot time series data with various styles. Fields format: 'topic.field.path' or '/topic/name.field.path'",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "fields": {
-                        "type": "array",
-                        "items": {"type": "string"},
-                        "description": "List of fields to plot (e.g., ['cmd_vel.linear.x', 'odom.twist.twist.linear.x'])"
-                    },
-                    "start_time": {"type": "number", "description": "Start unix timestamp in seconds"},
-                    "end_time": {"type": "number", "description": "End unix timestamp in seconds"},
-                    "plot_style": {"type": "string", 
-                                 "enum": ["line", "scatter", "step", "area", "box", "histogram"],
-                                 "description": "Style of plot (default: line)"},
-                    "title": {"type": "string", "description": "Plot title"},
-                    "x_label": {"type": "string", "description": "X axis label"},
-                    "y_label": {"type": "string", "description": "Y axis label"},
-                    "bag_path": {"type": "string", "description": "Optional: specific bag file or directory"}
-                },
-                "required": ["fields", "start_time", "end_time"]
-            }
-        ),
-        Tool(
-            name="plot_2d",
-            description="Create 2D plots (trajectories, X-Y relationships). Can color by time.",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "x_field": {"type": "string", "description": "X axis field (e.g., 'odom.pose.pose.position.x')"},
-                    "y_field": {"type": "string", "description": "Y axis field (e.g., 'odom.pose.pose.position.y')"},
-                    "start_time": {"type": "number", "description": "Start unix timestamp in seconds"},
-                    "end_time": {"type": "number", "description": "End unix timestamp in seconds"},
-                    "color_by_time": {"type": "boolean", "description": "Color gradient based on time (default: false)"},
-                    "title": {"type": "string", "description": "Plot title"},
-                    "x_label": {"type": "string", "description": "X axis label"},
-                    "y_label": {"type": "string", "description": "Y axis label"},
-                    "equal_aspect": {"type": "boolean", "description": "Keep aspect ratio equal (default: true)"},
-                    "bag_path": {"type": "string", "description": "Optional: specific bag file or directory"}
-                },
-                "required": ["x_field", "y_field", "start_time", "end_time"]
-            }
-        )
-    ]
-    
-    # Create handlers
-    async def handle_plot_timeseries(args):
-        return await plot_timeseries(
-            args["fields"],
-            args["start_time"],
-            args["end_time"],
-            args.get("plot_style", "line"),
-            args.get("title", "Time Series Plot"),
-            args.get("x_label", "Time (s)"),
-            args.get("y_label", "Value"),
-            args.get("bag_path"),
-            get_bag_files_fn,
-            deserialize_message_fn,
-            config
-        )
-    
-    async def handle_plot_2d(args):
-        return await plot_2d(
-            args["x_field"],
-            args["y_field"],
-            args["start_time"],
-            args["end_time"],
-            args.get("color_by_time", False),
-            args.get("title", "2D Plot"),
-            args.get("x_label", "X"),
-            args.get("y_label", "Y"),
-            args.get("equal_aspect", True),
-            args.get("bag_path"),
-            get_bag_files_fn,
-            deserialize_message_fn,
-            config
-        )
-    
-    return tools, {
-        "plot_timeseries": handle_plot_timeseries,
-        "plot_2d": handle_plot_2d
     }

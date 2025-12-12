@@ -5,42 +5,37 @@ Bag management tools for filtering and manipulating ROS bags.
 
 import os
 import shutil
-from typing import Dict, Any, List, Optional, Callable
+from typing import Dict, Any, List, Optional
 import logging
 from pathlib import Path
 from datetime import datetime
 
 from rosbags.rosbag2 import Reader, Writer
-import sqlite3
 
 logger = logging.getLogger(__name__)
 
+# Import mcp instance and helper functions from shared module
+from ..shared import mcp, get_bag_files, config
 
+
+@mcp.tool()
 async def filter_bag(
     source_bag: str,
     output_name: str,
-    time_filter: Optional[Dict] = None,
-    topics: Optional[Dict] = None,
-    downsample: Optional[Dict] = None,
-    bag_path: Optional[str] = None,
-    _get_bag_files_fn: Callable = None,
-    _deserialize_message_fn: Callable = None,
-    config: Dict[str, Any] = None
+    time_filter: Optional[Dict[str, Any]] = None,
+    topics: Optional[Dict[str, Any]] = None,
+    downsample: Optional[Dict[str, Any]] = None,
+    bag_path: Optional[str] = None
 ) -> Dict[str, Any]:
-    """
-    Create a filtered copy of a bag file.
+    """Create a filtered copy of a bag file with time, topic, and rate filtering.
     
     Args:
         source_bag: Path to source bag file or directory
-        output_name: Name for the output bag (will be created in same directory)
-        time_filter: Time filtering options
-            - {"first_seconds": 30} - Keep only first 30 seconds
-            - {"start": t1, "end": t2} - Keep specific time range
-        topics: Topic filtering
-            - {"include": ["/odom", "/scan"]} - Only include these topics
-            - {"exclude": ["/camera/image_raw"]} - Exclude these topics
-        downsample: Downsampling options
-            - {"topic": "/scan", "rate": 10} - Limit topic to 10 Hz
+        output_name: Name for output bag (created in same directory)
+        time_filter: Time filtering: {first_seconds: 30} or {start: t1, end: t2}
+        topics: Topic filtering: {include: [topics]} or {exclude: [topics]}
+        downsample: Downsampling: {topic: '/scan', rate: 10}
+        bag_path: Optional base path for bags
     """
     logger.info(f"Filtering bag {source_bag} to {output_name}")
     
@@ -229,54 +224,3 @@ async def filter_bag(
                 pass
         
         return {"error": f"Failed to filter bag: {str(e)}"}
-
-
-def register_bag_management_tools(server, get_bag_files_fn, deserialize_message_fn, config):
-    """Register bag management tools with the MCP server."""
-    from mcp.types import Tool
-    
-    tools = [
-        Tool(
-            name="filter_bag",
-            description="Create a filtered copy of a bag file with time, topic, and rate filtering",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "source_bag": {"type": "string", "description": "Path to source bag file or directory"},
-                    "output_name": {"type": "string", "description": "Name for output bag (created in same directory)"},
-                    "time_filter": {
-                        "type": "object",
-                        "description": "Time filtering: {first_seconds: 30} or {start: t1, end: t2}"
-                    },
-                    "topics": {
-                        "type": "object",
-                        "description": "Topic filtering: {include: [topics]} or {exclude: [topics]}"
-                    },
-                    "downsample": {
-                        "type": "object",
-                        "description": "Downsampling: {topic: '/scan', rate: 10}"
-                    },
-                    "bag_path": {"type": "string", "description": "Optional: base path for bags"}
-                },
-                "required": ["source_bag", "output_name"]
-            }
-        )
-    ]
-    
-    # Create handler
-    async def handle_filter_bag(args):
-        return await filter_bag(
-            args["source_bag"],
-            args["output_name"],
-            args.get("time_filter"),
-            args.get("topics"),
-            args.get("downsample"),
-            args.get("bag_path"),
-            get_bag_files_fn,
-            deserialize_message_fn,
-            config
-        )
-    
-    return tools, {
-        "filter_bag": handle_filter_bag
-    }

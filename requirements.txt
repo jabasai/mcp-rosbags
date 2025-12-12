@@ -1,7 +1,7 @@
 jinja2
 typeguard
 pillow
-mcp
+fastmcp
 rosbags
 numpy
 plotly

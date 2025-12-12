@@ -3,7 +3,7 @@
 TF tree extraction tool for understanding coordinate frame relationships.
 """
 
-from typing import Dict, Any, List, Optional, Callable, Set
+from typing import Dict, Any, List, Optional, Set
 import logging
 from pathlib import Path
 from collections import defaultdict
@@ -11,6 +11,9 @@ from collections import defaultdict
 from rosbags.rosbag2 import Reader
 
 logger = logging.getLogger(__name__)
+
+# Import mcp instance and helper functions from shared module
+from ..shared import mcp, get_bag_files, deserialize_message, config
 
 
 def build_tf_tree(transforms: Dict[tuple, Dict]) -> Dict[str, Any]:
@@ -86,14 +89,12 @@ def build_tf_tree(transforms: Dict[tuple, Dict]) -> Dict[str, Any]:
     }
 
 
+@mcp.tool()
 async def get_tf_tree(
     timestamp: float,
     tf_topic: str = "/tf",
     static_tf_topic: str = "/tf_static",
-    bag_path: Optional[str] = None,
-    _get_bag_files_fn: Callable = None,
-    _deserialize_message_fn: Callable = None,
-    config: Dict[str, Any] = None
+    bag_path: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Get the TF tree structure at a specific timestamp.
@@ -109,10 +110,8 @@ async def get_tf_tree(
     """
     logger.info(f"Getting TF tree at timestamp {timestamp}")
     
-    if not _get_bag_files_fn:
-        return {"error": "Bag files function not provided"}
-    
-    bags = _get_bag_files_fn(bag_path)
+
+    bags = get_bag_files(bag_path)
     if not bags:
         return {"error": "No bag files found"}
     
@@ -130,7 +129,7 @@ async def get_tf_tree(
                 # First collect static transforms (they don't change with time)
                 for conn, msg_timestamp, rawdata in reader.messages():
                     if conn.topic == static_tf_topic:
-                        _, msg_dict = _deserialize_message_fn(rawdata, conn.msgtype)
+                        _, msg_dict = deserialize_message(rawdata, conn.msgtype)
                         
                         for tf in msg_dict.get('transforms', []):
                             parent = tf.get('header', {}).get('frame_id', '')
@@ -151,7 +150,7 @@ async def get_tf_tree(
                         if abs(msg_timestamp - target_ns) > tolerance_ns:
                             continue
                         
-                        _, msg_dict = _deserialize_message_fn(rawdata, conn.msgtype)
+                        _, msg_dict = deserialize_message(rawdata, conn.msgtype)
                         
                         for tf in msg_dict.get('transforms', []):
                             parent = tf.get('header', {}).get('frame_id', '')
@@ -223,42 +222,4 @@ async def get_tf_tree(
         "static_count": len(static_transforms),
         "dynamic_count": len(dynamic_transforms),
         "transforms": transform_list
-    }
-
-
-def register_tf_tools(server, get_bag_files_fn, deserialize_message_fn, config):
-    """Register TF tree tools with the MCP server."""
-    from mcp.types import Tool
-    
-    tools = [
-        Tool(
-            name="get_tf_tree",
-            description="Get the TF (transform) tree showing coordinate frame relationships at a specific time",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "timestamp": {"type": "number", "description": "Unix timestamp to query TF tree"},
-                    "tf_topic": {"type": "string", "description": "Dynamic transforms topic (default: /tf)"},
-                    "static_tf_topic": {"type": "string", "description": "Static transforms topic (default: /tf_static)"},
-                    "bag_path": {"type": "string", "description": "Optional: specific bag file or directory"}
-                },
-                "required": ["timestamp"]
-            }
-        )
-    ]
-    
-    # Create handler
-    async def handle_get_tf_tree(args):
-        return await get_tf_tree(
-            args["timestamp"],
-            args.get("tf_topic", "/tf"),
-            args.get("static_tf_topic", "/tf_static"),
-            args.get("bag_path"),
-            get_bag_files_fn,
-            deserialize_message_fn,
-            config
-        )
-    
-    return tools, {
-        "get_tf_tree": handle_get_tf_tree
     }

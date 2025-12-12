@@ -5,7 +5,7 @@ Image extraction tool for retrieving images from ROS bags in LLM-compatible form
 
 import base64
 import numpy as np
-from typing import Dict, Any, Optional, Callable
+from typing import Dict, Any, Optional
 import logging
 from pathlib import Path
 from io import BytesIO
@@ -16,6 +16,9 @@ from rosbags.rosbag2 import Reader
 from PIL import Image
 
 logger = logging.getLogger(__name__)
+
+# Import mcp instance and helper functions from shared module
+from ..shared import mcp, get_bag_files, deserialize_message, config
 
 
 def decode_image_message(msg_dict: Dict[str, Any]) -> Optional[np.ndarray]:
@@ -133,16 +136,14 @@ def compress_image_for_llm(img_array: np.ndarray, max_size: int = 512, quality: 
         return None
 
 
+@mcp.tool()
 async def get_image_at_time(
     topic: str,
     timestamp: float,
     tolerance: float = 0.1,
     max_size: int = 512,
     quality: int = 85,
-    bag_path: Optional[str] = None,
-    _get_bag_files_fn: Callable = None,
-    _deserialize_message_fn: Callable = None,
-    config: Dict[str, Any] = None
+    bag_path: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Get an image from a camera topic at a specific time, encoded for LLM consumption.
@@ -160,10 +161,8 @@ async def get_image_at_time(
     """
     logger.info(f"Getting image from {topic} at {timestamp}")
     
-    if not _get_bag_files_fn:
-        return {"error": "Bag files function not provided"}
-    
-    bags = _get_bag_files_fn(bag_path)
+
+    bags = get_bag_files(bag_path)
     if not bags:
         return {"error": "No bag files found"}
     
@@ -198,7 +197,7 @@ async def get_image_at_time(
                     if diff < min_diff and diff <= tolerance_ns:
                         min_diff = diff
                         closest_time = msg_timestamp
-                        _, msg_dict = _deserialize_message_fn(rawdata, conn.msgtype)
+                        _, msg_dict = deserialize_message(rawdata, conn.msgtype)
                         closest_img = msg_dict
                         
         except Exception as e:
@@ -246,45 +245,3 @@ async def get_image_at_time(
     logger.info(f"Successfully extracted image: {width}x{height} -> {max_size}px max, {len(img_base64)/1024:.1f}KB")
     
     return result
-
-
-def register_image_tools(server, get_bag_files_fn, deserialize_message_fn, config):
-    """Register image extraction tools with the MCP server."""
-    from mcp.types import Tool
-    
-    tools = [
-        Tool(
-            name="get_image_at_time",
-            description="Get a camera image at a specific time, compressed and encoded for LLM analysis. Returns base64 JPEG that LLMs can directly interpret.",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "topic": {"type": "string", "description": "Image topic (e.g., /camera/image_raw, /camera/compressed)"},
-                    "timestamp": {"type": "number", "description": "Unix timestamp in seconds"},
-                    "tolerance": {"type": "number", "description": "Time tolerance in seconds (default: 0.1)"},
-                    "max_size": {"type": "integer", "description": "Max image dimension in pixels (default: 512)"},
-                    "quality": {"type": "integer", "description": "JPEG quality 1-100 (default: 85)"},
-                    "bag_path": {"type": "string", "description": "Optional: specific bag file or directory"}
-                },
-                "required": ["topic", "timestamp"]
-            }
-        )
-    ]
-    
-    # Create handler
-    async def handle_get_image_at_time(args):
-        return await get_image_at_time(
-            args["topic"],
-            args["timestamp"],
-            args.get("tolerance", 0.1),
-            args.get("max_size", 512),
-            args.get("quality", 85),
-            args.get("bag_path"),
-            get_bag_files_fn,
-            deserialize_message_fn,
-            config
-        )
-    
-    return tools, {
-        "get_image_at_time": handle_get_image_at_time
-    }

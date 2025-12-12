@@ -4,13 +4,16 @@ Trajectory analysis tool for comprehensive path analysis.
 """
 
 import numpy as np
-from typing import Dict, Any, List, Optional, Callable
+from typing import Dict, Any, List, Optional
 import logging
 from pathlib import Path
 
 from rosbags.rosbag2 import Reader
 
 logger = logging.getLogger(__name__)
+
+# Import mcp instance and helper functions from shared module
+from ..shared import mcp, get_bag_files, deserialize_message, config
 
 
 def calculate_distance_2d(p1: Dict[str, float], p2: Dict[str, float]) -> float:
@@ -98,6 +101,7 @@ def extract_position(msg_data: Dict[str, Any]) -> Optional[Dict[str, float]]:
     return None
 
 
+@mcp.tool()
 async def analyze_trajectory(
     pose_topic: str,
     start_time: float,
@@ -105,9 +109,6 @@ async def analyze_trajectory(
     include_waypoints: bool = True,
     max_waypoints: int = 20,
     bag_path: Optional[str] = None,
-    _get_bag_files_fn: Callable = None,
-    _deserialize_message_fn: Callable = None,
-    config: Dict[str, Any] = None
 ) -> Dict[str, Any]:
     """
     Analyze trajectory with comprehensive statistics and waypoint detection.
@@ -122,10 +123,9 @@ async def analyze_trajectory(
     """
     logger.info(f"Analyzing trajectory for {pose_topic} from {start_time} to {end_time}")
     
-    if not _get_bag_files_fn:
-        return {"error": "Bag files function not provided"}
+
     
-    bags = _get_bag_files_fn(bag_path)
+    bags = get_bag_files(bag_path)
     if not bags:
         return {"error": "No bag files found"}
     
@@ -147,7 +147,7 @@ async def analyze_trajectory(
                         continue
                     
                     if start_ns <= timestamp <= end_ns:
-                        _, msg_dict = _deserialize_message_fn(rawdata, conn.msgtype)
+                        _, msg_dict = deserialize_message(rawdata, conn.msgtype)
                         position = extract_position(msg_dict)
                         
                         if position:
@@ -302,44 +302,3 @@ async def analyze_trajectory(
     
     return result
 
-
-def register_trajectory_tools(server, get_bag_files_fn, deserialize_message_fn, config):
-    """Register trajectory analysis tools with the MCP server."""
-    from mcp.types import Tool
-    
-    tools = [
-        Tool(
-            name="analyze_trajectory",
-            description="Analyze robot/vehicle trajectory with comprehensive metrics including distance, speed, efficiency, and waypoints",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "pose_topic": {"type": "string", "description": "Pose/odometry topic (e.g., /odom, /robot_pose)"},
-                    "start_time": {"type": "number", "description": "Start unix timestamp in seconds"},
-                    "end_time": {"type": "number", "description": "End unix timestamp in seconds"},
-                    "include_waypoints": {"type": "boolean", "description": "Include waypoint detection (default: true)"},
-                    "max_waypoints": {"type": "integer", "description": "Maximum waypoints to return (default: 20)"},
-                    "bag_path": {"type": "string", "description": "Optional: specific bag file or directory"}
-                },
-                "required": ["pose_topic", "start_time", "end_time"]
-            }
-        )
-    ]
-    
-    # Create handler
-    async def handle_analyze_trajectory(args):
-        return await analyze_trajectory(
-            args["pose_topic"],
-            args["start_time"],
-            args["end_time"],
-            args.get("include_waypoints", True),
-            args.get("max_waypoints", 20),
-            args.get("bag_path"),
-            get_bag_files_fn,
-            deserialize_message_fn,
-            config
-        )
-    
-    return tools, {
-        "analyze_trajectory": handle_analyze_trajectory
-    }
