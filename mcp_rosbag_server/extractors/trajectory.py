@@ -123,8 +123,7 @@ async def analyze_trajectory(
     """
     logger.info(f"Analyzing trajectory for {pose_topic} from {start_time} to {end_time}")
     
-    if not get_bag_files:
-        return {"error": "Bag files function not provided"}
+
     
     bags = get_bag_files(bag_path)
     if not bags:

@@ -51,8 +51,7 @@ async def analyze_logs(
     """
     logger.info(f"Analyzing logs: level={level_filter}, node={node_filter}, summary={return_summary}")
     
-    if not get_bag_files:
-        return {"error": "Bag files function not provided"}
+
     
     bags = get_bag_files(bag_path)
     if not bags:

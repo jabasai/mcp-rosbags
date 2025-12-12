@@ -151,9 +151,7 @@ async def analyze_lidar_scan(
     """
     logger.info(f"Analyzing LiDAR scan from {topic}")
     
-    if not get_bag_files:
-        return {"error": "Bag files function not provided"}
-    
+
     bags = get_bag_files(bag_path)
     if not bags:
         return {"error": "No bag files found"}
@@ -326,9 +324,7 @@ async def plot_lidar_scan(
     """
     logger.info(f"Creating LiDAR plot for {topic} at {timestamp}")
     
-    if not get_bag_files:
-        return {"error": "Bag files function not provided"}
-    
+
     bags = get_bag_files(bag_path)
     if not bags:
         return {"error": "No bag files found"}

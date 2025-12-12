@@ -128,9 +128,7 @@ async def plot_timeseries(
     """
     logger.info(f"Creating {plot_style} time series plot for {len(fields)} fields")
     
-    if not get_bag_files:
-        return {"error": "Bag files function not provided"}
-    
+
     bags = get_bag_files(bag_path)
     if not bags:
         return {"error": "No bag files found"}

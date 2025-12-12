@@ -161,9 +161,7 @@ async def get_image_at_time(
     """
     logger.info(f"Getting image from {topic} at {timestamp}")
     
-    if not get_bag_files:
-        return {"error": "Bag files function not provided"}
-    
+
     bags = get_bag_files(bag_path)
     if not bags:
         return {"error": "No bag files found"}

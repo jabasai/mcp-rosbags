@@ -228,8 +228,7 @@ async def search_messages(
     """
     logger.info(f"Searching {topic} for {condition_type}={value}, field={field}, direction={direction}, limit={limit}")
     
-    if not get_bag_files:
-        return {"error": "Bag files function not provided"}
+    
     
     bags = get_bag_files(bag_path)
     if not bags:

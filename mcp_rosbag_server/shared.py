@@ -5,12 +5,17 @@ This module avoids circular imports by providing a centralized location for shar
 
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING
 import logging
+
+if TYPE_CHECKING:
+    from .server import FastMCP
 
 logger = logging.getLogger(__name__)
 
-# Global state that will be set by server.py
-mcp = None
+# Global MCP server instance.
+# This will be initialized by server.py at runtime.
+mcp: Optional["FastMCP"] = None
 config: Dict[str, Any] = {}
 schema_manager = None
 cache_manager = None
